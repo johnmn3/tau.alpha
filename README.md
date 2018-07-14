@@ -19,9 +19,9 @@ Another caveat is that not all code survives serialization. Certain closures and
 
 # Usage
 
-The [ex](https://github.com/johnmn3/tau.alpha/blob/master/src/tau/alpha/ex.cljs)ample namespace contains some example code showing how to use `tauon`s. `tauon`s are the concurrency primitives that make webworkers act more like Clojure atoms.
+The [example](https://github.com/johnmn3/tau.alpha/blob/master/src/tau/alpha/ex.cljs) namespace contains some example code showing how to use `tauon`s. `tauon`s wrap webworkers in an interface that allows you to pass (some) expressions to webworkers for invocation. All `tauon`s maintain a fully connected mesh of port channels and a db of all `tauon`s in the network, allowing you to invoke staged expressions down arbitrary chains of `tauon`s, simplifying the design of higher-level concurrency primitives. Expressions are invoked on `tauon`s using the `on` macro (see below).
 
-A `tau` is also similar to a Clojure atom, but is backed by a slice of a SharedArrayBuffer.
+A `tau` is similar to a Clojure atom, but is backed by a slice of a SharedArrayBuffer. You can `swap!` on it synchronously from multiple `tauon`s (webworkers) in parallel.
 
 The `future` macro leverages both `tau`s and `tauon`s, sending functions to seperate `tauon`s (webworkers) while commiting updates to the `tau`s (SharedArrayBuffers).
 
@@ -43,7 +43,7 @@ Now, you might have to reload your namespaces first, but next do something like:
 (def t (tauon))
 
 (on t (println "result:" @(future (+ 1 2 3))))
-;=> 6
+;=> result: 6
 ```
 
 [Eclipse Public License 1.0]: http://opensource.org/licenses/eclipse-1.0.php
