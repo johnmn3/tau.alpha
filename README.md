@@ -19,7 +19,7 @@ Another caveat is that not all code survives serialization. Certain closures and
 
 # Usage
 
-The [example](https://github.com/johnmn3/tau.alpha/blob/master/src/tau/alpha/ex.cljs) namespace contains some example code showing how to use `tauon`s. `tauon`s wrap webworkers in an interface that allows you to pass (some) expressions to webworkers for invocation. All `tauon`s maintain a fully connected mesh of port channels and a db of all `tauon`s in the network, allowing you to invoke staged expressions down arbitrary chains of `tauon`s, simplifying the design of higher-level concurrency primitives. Expressions are invoked on `tauon`s using the `on` macro (see below).
+The [example](https://github.com/johnmn3/tau.alpha/blob/master/src/tau/alpha/ex.cljs) namespace contains some example code showing how to use `tauon`s. `tauon`s wrap webworkers in an interface that allows you to pass (some) expressions to webworkers for invocation. All `tauon`s maintain a fully connected mesh of port channels and a db of all `tauon`s in the network, allowing you to invoke staged expressions down arbitrary chains of `tauon`s, simplifying the design of higher-level concurrency primitives such as the [executor pool](https://github.com/johnmn3/tau.alpha/blob/master/src/tau/alpha/exec.cljs#L17) that `future`s leverage. Expressions are invoked on `tauon`s using the `on` macro (see below).
 
 A `tau` is similar to a Clojure atom, but is backed by a slice of a SharedArrayBuffer. You can `swap!` on it synchronously from multiple `tauon`s (webworkers) in parallel.
 
