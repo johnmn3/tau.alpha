@@ -11,7 +11,7 @@ The purpose of this library is to:
 
 tau.alpha is very alpha. Most of it is incomplete. In its current form, it's just enough to demonstrate a very simple version of using `future` in ClojureScript.
 
-The current implementation also uses a very naive method to manage memory over SharedArrayBuffers - it just has twenty-five 20KB slices (a `tau`'s memory store) over a SharedArrayBuffer which `future` invocations cycle over. `future`s are called on a pool of _n_ `tauon`s, where _n_ is `(+ 1 (num-cores))`. You can change the size and number of `tau`s in the SharedArrayBuffer in the [tau.alpha.tau namespace](https://github.com/johnmn3/tau.alpha/blob/master/src/tau/alpha/tau.cljs#L12).
+The current implementation also uses a very naive method to manage memory on SharedArrayBuffers - it just has twenty-five 20KB slices (a `tau`'s memory store) on a SharedArrayBuffer which `future` invocations cycle over. `future`s are called on a rotating pool of _n_ `tauon`s, where _n_ is `(+ 1 (num-cores))`. You can change the size and number of `tau`s in the SharedArrayBuffer in the [tau.alpha.tau namespace](https://github.com/johnmn3/tau.alpha/blob/master/src/tau/alpha/tau.cljs#L12).
 
 The SharedArrayBuffer in which all the `tau`s live is shared between all the `tauon`s, so we don't have to wait for messages to pass back and forth. However, we still convert ClojureScript datastructures to binary and back. Having [TypedArray-backed persistent datastructures](https://dev.clojure.org/jira/browse/CLJS-1153) might help us out here.
 
