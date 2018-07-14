@@ -23,8 +23,6 @@ The [example](https://github.com/johnmn3/tau.alpha/blob/master/src/tau/alpha/ex.
 
 A `tau` is similar to a Clojure atom, but is backed by a slice of a SharedArrayBuffer. You can `swap!` on it synchronously from multiple `tauon`s (webworkers) in parallel.
 
-The `future` macro leverages both `tau`s and `tauon`s, sending functions to seperate `tauon`s (webworkers) while commiting updates to the `tau`s (SharedArrayBuffers).
-
 NOTE: [Recent vulnerabilities](https://developers.google.com/web/updates/2018/02/meltdown-spectre) have caused browser vendors to temporarily disable SharedArrayBuffers, hidden behind a configuration flag. Change this setting in [chrome://flags/](chrome://flags/) at your own risk.
 
 To try it out:
