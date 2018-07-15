@@ -76,6 +76,7 @@ So that you can turn asynchronous functions into synchronous ones. Like, with th
 Now we can use it synchronously:
 ```
 (on t (println "res:" @(xget "http://api.open-notify.org/iss-now.json")))
+;=> res: {"iss_position": {"latitude": "-36.8520", "longitude": "155.9574"}, "timestamp": 1531614629, "message": "success"}
 ```
 
 [Eclipse Public License 1.0]: http://opensource.org/licenses/eclipse-1.0.php
