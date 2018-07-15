@@ -46,4 +46,36 @@ Now, you might have to reload your namespaces first, but next do something like:
 ;=> result: 6
 ```
 
+You can also `yield` with the `later` macro:
+
+```
+(on t (println "result" @(later (yield (+ 1 2 3)))))
+
+```
+
+So that you can turn asynchronous functions into synchronous ones. Like, with the following functions defined in the example namespce:
+
+```
+(defn handle-response [event]
+  (let [xhr (.-target event)]
+    (if (= (.-readyState xhr) 4)
+      (if (= (.-status xhr) 200)
+        (let [res (.-responseText xhr)]
+          (when res
+            (yield res)))
+        (yield (.-statusText xhr))))))
+
+(defn xget [url]
+  (later [url]
+    (let [axhr (js/XMLHttpRequest.)]
+      (.open axhr "GET" url)
+      (set! (.-onreadystatechange axhr) handle-response)
+      (.send axhr nil))))
+```
+
+Now we can use it synchronously:
+```
+(on t (println "res:" @(xget "http://api.open-notify.org/iss-now.json")))
+```
+
 [Eclipse Public License 1.0]: http://opensource.org/licenses/eclipse-1.0.php
