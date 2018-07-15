@@ -1,4 +1,6 @@
 ^{:watch-dirs ["src"]
   :css-dirs ["resources/public/css"]
-  :ring-server-options {:port 9550}}
+  :ring-server-options {:port 9550}
+  :connect-id {:fwbuild "dev"}
+  :validate-config false}
 {:main tau.alpha.ex}

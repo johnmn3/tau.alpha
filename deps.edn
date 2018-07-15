@@ -1,10 +1,11 @@
 {:deps {org.clojure/clojure {:mvn/version "1.9.0"}}
- :aliases {:fig {:extra-deps
-                  {org.clojure/clojurescript {:mvn/version "1.10.339"}
-                   com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
-                   com.bhauman/figwheel-main {:mvn/version "0.1.4"}}
-                 :extra-paths ["resources" "target"]
-                 :main-opts ["-m" "figwheel.main"]}
-           :dev   {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :dev0  {:main-opts ["-m" "figwheel.main" "-b" "dev0" "-r"]}
+ :aliases {:fig   {:extra-deps
+                    {org.clojure/clojurescript {:mvn/version "1.10.339"}
+                     com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
+                     com.bhauman/figwheel-main {:mvn/version "0.1.4"}}
+                   :extra-paths ["resources" "target"]
+                   :main-opts ["-m" "figwheel.main"]}
+           :dev   {:extra-deps
+                    {com.bhauman/figwheel-repl {:mvn/version "0.1.4"}}
+                   :main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
            :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}}}

@@ -1,10 +1,11 @@
 (ns tau.alpha.ex
   (:require-macros [tau.alpha.macros :refer [log on future later]])
-  (:require [tau.alpha.state :refer [set-conf! on-screen? repl-fn]]
+  (:require [figwheel.repl :as repl :refer [connect focus conns]]
+            [tau.alpha.state :refer [set-conf! on-screen? repl-fn]]
             [tau.alpha.on :refer [tauon kill]]
             [tau.alpha.exec :refer [exec]]
             [tau.alpha.future :refer [yield future-call]]
-            [tau.alpha.util :refer [sleep]]
+            [tau.alpha.util :refer [sleep read]]
             [tau.alpha.tau :refer [Tau tau wait set-tau-validator! set-tau-error-handler!]]))
 
 (enable-console-print!)
