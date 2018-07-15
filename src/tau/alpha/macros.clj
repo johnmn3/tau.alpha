@@ -32,12 +32,13 @@
              (tree-seq coll? seq)
              (filter yield-form?))))))
 
+(defmacro later [& body]
+  (if (vector? (first body))
+    `(tau.alpha.future/future-call ~(first body) (^{:once true} fn* ~(first body) ~@(rest body)))
+    `(tau.alpha.future/future-call [] (^{:once true} fn* [] ~@body))))
+
 (defmacro future [& body]
-  (if (yields? body)
-    (if (vector? (first body))
-      `(tau.alpha.future/future-call ~(first body) (^{:once true} fn* ~(first body) ~@(rest body)))
-      `(tau.alpha.future/future-call [] (^{:once true} fn* [] ~@body)))
-    (if (vector? (first body))
-      `(tau.alpha.future/future-call [~@(first body)] (^{:once true} fn* [~@(first body)]
-                                                      (tau.alpha.future/yield (do ~@(rest body)))))
-      `(tau.alpha.future/future-call [] (^{:once true} fn* [] (tau.alpha.future/yield (do ~@body)))))))
+  (if (vector? (first body))
+    `(tau.alpha.future/future-call [~@(first body)] (^{:once true} fn* [~@(first body)]
+                                                    (tau.alpha.future/yield (do ~@(rest body)))))
+    `(tau.alpha.future/future-call [] (^{:once true} fn* [] (tau.alpha.future/yield (do ~@body))))))

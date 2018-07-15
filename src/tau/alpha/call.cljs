@@ -34,7 +34,6 @@
 
 (defn get-name [obj-js]
   (let [s (if (string? obj-js) obj-js (pr-str obj-js))
-        object? (obj? s)
         new-s (strip-obj s)
         anon? (= "function (" (apply str (take 10 new-s)))
         n1 (if anon?
@@ -57,26 +56,6 @@
         es? (filter #{\\} f)]
     (if (not (empty? es?)) (read (str "\"" f "\""))
       f)))
-
-(defn inner-partial? [obj-js]
-  (let [s (pr-str obj-js)
-        drop-obj (apply str (rest (drop-while #(not (#{\{} %)) s)))
-        drop-obj (apply str (rest (drop-while #(not (#{\space} %)) drop-obj)))
-        fn-name   (apply str (take 22 drop-obj))]
-    (= "cljs.core.partial.call" fn-name)))
-
-(defn unescape
-  "Unescape double back-slash escaped characters in a string."
-  [s]
-  (when s
-    (-> s
-      (replace #"\\(.)" "$1"))))
-
-(defn str-if [o]
-  (if (string? o) o (pr-str o)))
-
-(defn obj-if [s]
-  (if (string? s) (read s) s))
 
 (defn respile [fn-str]
   (js/eval (name-fn fn-str)))

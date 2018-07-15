@@ -1,9 +1,9 @@
 (ns tau.alpha.ex
-  (:require-macros [tau.alpha.macros :refer [log on future]])
+  (:require-macros [tau.alpha.macros :refer [log on future later]])
   (:require [tau.alpha.state :refer [set-conf! on-screen? repl-fn]]
             [tau.alpha.on :refer [tauon kill]]
             [tau.alpha.exec :refer [exec]]
-            [tau.alpha.future :refer [future-call]]
+            [tau.alpha.future :refer [yield future-call]]
             [tau.alpha.util :refer [sleep]]
             [tau.alpha.tau :refer [Tau tau wait set-tau-validator! set-tau-error-handler!]]))
 
@@ -14,6 +14,22 @@
 (set-conf! {:main "tau.alpha.ex"
             :log? true})
 
+(defn handle-response [event]
+  (let [xhr (.-target event)]
+    (if (= (.-readyState xhr) 4)
+      (if (= (.-status xhr) 200)
+        (let [res (.-responseText xhr)]
+          (when res
+            (yield res)))
+        (yield (.-statusText xhr))))))
+
+
+(defn xget [url]
+  (later [url]
+    (let [axhr (js/XMLHttpRequest.)]
+      (.open axhr "GET" url)
+      (set! (.-onreadystatechange axhr) handle-response)
+      (.send axhr nil))))
 
 (def x "x")
 

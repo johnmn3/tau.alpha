@@ -12,16 +12,6 @@
 (enable-console-print!)
 (set! *print-fn-bodies* true)
 
-(defn get-tau [port]
-  ;(log "running get-tau")
-  (on port [id]
-      (send-taus id)))
-
-(defn get-taus []
-  ;(log "running get-taus")
-  (let [ps (keys @tau.alpha.state/ports)]
-    (doall (map get-tau ps))))
-
 (defn run-launch []
   (connect)
   (swap! loaded? (constantly true))

@@ -2,7 +2,7 @@
   (:require [tau.alpha.exec :refer [local-submit oid tau-tau tau-afn]]))
 
 (defn yield [arg]
-  (when (and @tau-afn (not (:yielded? @@tau-tau)))
+  (when (and @tau-tau (not (:yielded? @@tau-tau)))
     (swap! @tau-tau (fn [_] {:yielded? true :completed? true :result arg}))))
 
 (defn future-call

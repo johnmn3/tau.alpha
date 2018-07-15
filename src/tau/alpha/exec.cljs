@@ -67,8 +67,7 @@
           conveyed (respile-args conveyer)
           res (when afn
                 (try (apply call afn conveyed)
-                     (catch :default e (log "error:" e))))]
-      (swap! atau (constantly res))
+                     (catch :default e (println "error:" e))))]
       res))
   (unpend pid atauon)
   (specify! atau
@@ -79,13 +78,7 @@
           result
           (if completed?
             result
-            (:result (wait atau))
-            #_
-            (do (sleep 50)
-              (let [{:keys [completed? result]} (:val (tau.alpha.util/unc (tau.alpha.tau/-get-int32a atau)))]
-                (if completed?
-                  result
-                  (:result (wait atau)))))))))))
+            (:result (wait atau))))))))
 
 (declare Executor)
 

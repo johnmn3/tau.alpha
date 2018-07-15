@@ -117,9 +117,6 @@
         (pprint {:on (get-id) :file f :line l :return-value ret :out s})))
     ret))
 
-(defn route [m]
-  (println "routing for transmit. m cmd: " (:cmd m))
-  (((:cmd m) @serve-handlers) m))
 
 (defn receive-dist-port [m]
   (swap! ports assoc-in [(:tid m) :port] (:port m))
