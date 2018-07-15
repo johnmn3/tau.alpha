@@ -80,7 +80,9 @@ Now we can use it synchronously:
 ;=> res: {"iss_position": {"latitude": "-36.8520", "longitude": "155.9574"}, "timestamp": 1531614629, "message": "success"}
 ```
 
-Using figwheel.repl we can also open new repls from a `tauon` and switch between them at will:
+# Tauon REPLing
+
+Using [figwheel.repl](https://github.com/bhauman/figwheel-repl) we can also open new repls from a `tauon` and switch between them at will:
 
 ```
 (on t (connect "ws://localhost:9550/figwheel-connect?fwbuild=dev"))
