@@ -74,9 +74,50 @@ So that you can turn asynchronous functions into synchronous ones. Like, with th
 ```
 
 Now we can use it synchronously:
+
 ```
 (on t (println "res:" @(xget "http://api.open-notify.org/iss-now.json")))
 ;=> res: {"iss_position": {"latitude": "-36.8520", "longitude": "155.9574"}, "timestamp": 1531614629, "message": "success"}
+```
+
+Using figwheel.repl we can also open new repls from a `tauon` and switch between them at will:
+
+```
+(on t (connect "ws://localhost:9550/figwheel-connect?fwbuild=dev"))
+```
+
+You should see a new session created in the browser console with log statements like: ` [Figwheel REPL] Session Name: Vashti`
+
+Then you can view available connections with `conns` and switch to them with `focus` like so:
+
+```
+tau.alpha.ex=> (conns)
+
+Will Eval On:  Vashti
+Session Name     Age URL
+Vashti           19m /figwheel-connect
+Stephan          20m /figwheel-connect
+nil
+
+tau.alpha.ex=> js/document
+#object[ReferenceError ReferenceError: document is not defined]
+	 (<NO_SOURCE_FILE>)
+
+tau.alpha.ex=> (focus "Stephan")
+"Focused On: Stephan"
+
+tau.alpha.ex=> js/document
+#object[HTMLDocument [object HTMLDocument]]
+
+tau.alpha.ex=> (focus "Vashti")
+"Focused On: Vashti"
+
+tau.alpha.ex=> (let [res (xget "http://api.open-notify.org/iss-now.json")
+          #_=>       iss (-> @res js/JSON.parse (js->clj :keywordize-keys true))
+          #_=>       loc (:iss_position iss)]
+
+International Space Station, Current Location: {:longitude -175.7632, :latitude -10.2605}
+nil
 ```
 
 [Eclipse Public License 1.0]: http://opensource.org/licenses/eclipse-1.0.php
