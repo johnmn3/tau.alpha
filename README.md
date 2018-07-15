@@ -115,7 +115,7 @@ tau.alpha.ex=> (focus "Vashti")
 tau.alpha.ex=> (let [res (xget "http://api.open-notify.org/iss-now.json")
           #_=>       iss (-> @res js/JSON.parse (js->clj :keywordize-keys true))
           #_=>       loc (:iss_position iss)]
-
+          #_=>   (println "International Space Station, Current Location:" loc))
 International Space Station, Current Location: {:longitude -175.7632, :latitude -10.2605}
 nil
 ```
