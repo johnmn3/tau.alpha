@@ -119,6 +119,7 @@
 
 
 (defn receive-dist-port [m]
+  ;(println "receive-dist-port:" m)
   (swap! ports assoc-in [(:tid m) :port] (:port m))
   (doall (map #(% (:tid m)) @tau.alpha.state/new-port-fns))
   (set! (.-onmessage (:port m))

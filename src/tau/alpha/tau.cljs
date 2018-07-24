@@ -3,7 +3,7 @@
   (:require
     [tau.alpha.state :refer [id on-screen? sabs]]
     [tau.alpha.call :refer [call]]
-    [tau.alpha.util :refer [get-new-id read enc unc]]
+    [tau.alpha.util :refer [get-new-id read enc unc typed-array?]]
     [cljs.reader :refer [register-tag-parser!]]))
 
 (enable-console-print!)
@@ -69,6 +69,7 @@
   "Protocol for functionality shared atoms"
   (-get-sab [o])
   (-get-int32a [o])
+  (-get-ab [o])
   (-get-lock [o])
   (-locked? [o])
   (-set [o a])
@@ -116,22 +117,60 @@
 (defn get-tau-validator [o]
   (-get-validator o))
 
-(defn update-val-with-latch [o ia f & args]
+(defn enc-ab [ar s]
+  ; (println :enc-ab (if ar :got-ar :no-ar))
+  ; (println :enc-ab (if s :got-s :no-s))
+  (try
+    (let [new-length (.-length s)
+          old-index (js/Atomics.load ar 2)
+          new-index (if (= 0 old-index) (int (/ (.-length ar) 2)) 0)
+          write-point (if (= 0 new-index) 4 1)]
+      (doall
+       (map-indexed
+        #(aset ar (+ %1 write-point new-index) %2)
+        (array-seq s)))
+      (js/Atomics.store ar (+ (dec write-point) new-index) new-length)
+      (js/Atomics.store ar 2 new-index)
+      ar)
+    (catch :default e (println "enc-ab failed"))))
+
+(defn unc-ab [a]
+  #_(println "unc-ab")
+  (try
+    (let [;_ (println :type (type a))
+          i (js/Atomics.load a 2)
+          ;_ (println "i:" i)
+          read-point ({0 4} i 1)
+          l (js/Atomics.load a (+ (dec read-point) i))
+          #_ (println "unc-ab, i:" i "read-point:" read-point "l:" l)
+          ca (js/Int32Array.
+              (to-array (take l (drop (+ i read-point) (array-seq a)))))]
+      ca)
+    (catch :default e 
+      (do (println "failed on unc-ab")
+          (println "error:" e)))))
+
+(defn update-val-with-latch [meta o ia f & args]
   (with-latch o
     ia
-    #(let [ov (unc ia)
-           v (:val ov)
-           r (apply f v args)]
-       (if-let [validator (get-tau-validator o)]
-         (if (call validator r)
+    #(if (:ab meta)
+       (let [ov (unc-ab ia)
+             r (apply f ov args)]
+         (enc-ab ia r)
+         r)
+       (let [ov (unc ia)
+             v (:val ov)
+             r (apply f v args)]
+         (if-let [validator (get-tau-validator o)]
+           (if (call validator r)
+             (do
+               (enc ia (assoc ov :val r))
+               (-notify-watches o ov r))
+             (throw (js/Error. (str "Validator failed for value: " r))))
            (do
              (enc ia (assoc ov :val r))
-             (-notify-watches o ov r))
-           (throw (js/Error. (str "Validator failed for value: " r))))
-         (do
-           (enc ia (assoc ov :val r))
-           (-notify-watches o ov r)))
-       r)))
+             (-notify-watches o ov r)))
+         r))))
 
 (defn add-watch-with-latch [o ia k f]
   (with-latch o ia #(enc ia (assoc-in (unc ia) [:watches k] (pr-str f)))) o)
@@ -166,9 +205,14 @@
   ISharedAtom
   (-get-sab [o] sab)
   (-get-int32a [o] int32a)
+  (-get-ab [o] int32a)
   (-get-lock [o] int32a)
   (-locked? [o] (not= 0 (aload int32a 0)))
-  (-set [o a] (enc int32a a) a)
+  (-set [o a]
+       (cond
+        (= (:type meta) :ab) (enc-ab int32a a)
+        :else (enc int32a a))
+      a)
   (-get-watches [o] (:watches (unc int32a)))
   (-set-error-handler! [o f] (set-error-handler-with-latch o int32a f))
   (-get-error-handler [o] (:error-handler (unc int32a)))
@@ -176,17 +220,20 @@
   (-get-validator [o] (:validator (unc int32a)))
   (-blocking-deref [o]
     (block o)
-    (:val (unc (-get-int32a o))))
+    (cond
+     (:ab meta) (unc-ab (-get-int32a o))
+     :else (:val (unc (-get-int32a o)))))
+
 
 
   ISwap
-  (-swap! [o f] (update-val-with-latch o int32a f))
-  (-swap! [o f a] (update-val-with-latch o int32a f a))
-  (-swap! [o f a b] (update-val-with-latch o int32a f a b))
-  (-swap! [o f a b xs] (apply update-val-with-latch o int32a f a b xs))
+  (-swap! [o f] (update-val-with-latch meta o int32a f))
+  (-swap! [o f a] (update-val-with-latch meta o int32a f a))
+  (-swap! [o f a b] (update-val-with-latch meta o int32a f a b))
+  (-swap! [o f a b xs] (apply update-val-with-latch meta o int32a f a b xs))
 
   IReset
-  (-reset! [o nv] (update-val-with-latch o int32a (fn [_] nv)))
+  (-reset! [o nv] (update-val-with-latch meta o int32a (fn [_] nv)))
 
   IDable
   (-id [o] oid)
@@ -195,7 +242,10 @@
   (-equiv [o other] (identical? o other))
 
   IDeref
-  (-deref [o] (:val (unc int32a)))
+  (-deref [o]
+    (cond
+     (:ab meta) (unc-ab (-get-int32a o))
+     :else (:val (unc (-get-int32a o)))))
 
   IMeta
   (-meta [o] meta)
@@ -223,41 +273,6 @@
 (defn swap [o f & a]
   (apply -swap! o f a))
 
-(defn send-tau [port t sab nid]
-  (on "screen" [sab port t nid]
-      (on port [sab t nid]
-          (swap! db assoc
-                 (str t)
-                 (Tau. sab (js/Int32Array. sab) nid {:id nid} nil nil))
-          #_ (log @db))))
-
-(defn send-tau-to-screen [t sab nid]
-  (on "screen" [sab t nid]
-      (swap! db assoc
-             (str t)
-             (Tau. sab (js/Int32Array. sab) nid {:id nid} nil nil))))
-
-(defn dist-tau [t]
-  (send-tau-to-screen t (-get-sab t) (-id t))
-  (doall
-    (map #(send-tau % t (-get-sab t) (-id t)) (keys @tau.alpha.state/ports))))
-
-(defn send-taus [port]
-  (let [ts (vals @db)]
-    (doall
-      (for [t ts
-            :let [s (-get-sab t)
-                  i (-id t)]]
-        (send-tau port t s i)))))
-
-(swap! tau.alpha.state/new-port-fns conj send-taus)
-
-(when (on-screen?)
-  (swap! sabs assoc :main-pool
-         (js/SharedArrayBuffer. (+ 4 (* 2 4 *num-taus* *tau-size*))))
-  (let [s (js/Int32Array. (:main-pool @sabs) 0 1)]
-    (astore s 0 0)))
-
 (defn get-next-ctr
   ([sab]
    (let [ia (js/Int32Array. sab 0 1)
@@ -272,33 +287,128 @@
 (defn get-next-ia-idx [n]
   (* n 2 4 *tau-size*))
 
+(defn construct-tau [sab nid]
+  #_(println "constructing-tau:" nid)
+  (let [tid (read nid)
+        n1 (nth (name tid) 2)]
+    #_(println "tid:" tid "n1:" n1)
+    (if (= n1 "_")
+      (let [size (/ (.-byteLength sab) 4)
+            ia (js/Int32Array. sab 0 size)
+            meta {:id (str tid) :size size :ab true}
+            t (Tau. sab ia (str tid) meta nil nil)]
+        (swap! db assoc (str t) t)
+        t)
+      (let [n2 (nth (name tid) 3)
+            n (read (if (= n1 "0") n2 (str n1 n2)))
+            idx (get-next-ia-idx n)
+            sab (:main-pool @sabs)
+            ia (js/Int32Array. sab idx (* 2 *tau-size*))
+            t (Tau. sab ia (str tid) {:id (str tid)} nil nil)]
+        (swap! db assoc (str t) t)
+        t))))
+
+(defn receive-tau [sab nid]
+  #_(println "receive-tau: nid:" nid)
+  (let [tau-id (str "#Tau {:id " nid "}")
+        atau (construct-tau sab nid)]
+    (swap! db assoc tau-id atau)
+    #_(println "received tau, contents:" @atau)))
+
+(defn send-tau [port sab nid]
+  (if (on-screen?)
+    (on port [sab nid] {:error-fn println}
+        #_(println "getting tau, length:" (.-byteLength sab))
+        (receive-tau sab nid))
+    (on "screen" [sab port nid] {:error-fn println}
+        (on port [sab nid] {:error-fn println}
+            (receive-tau sab nid)))))
+
+(defn send-tau-to-screen [sab nid]
+  (on "screen" [sab nid] {:error-fn println}
+      (swap! db assoc
+             (str "#Tau {:id " nid "}")
+             (construct-tau sab nid))))
+
+(defn dist-tau [t]
+  (when (not (on-screen?))
+    (send-tau-to-screen (-get-sab t) (-id t)))
+  (doall
+    (map #(send-tau % (-get-sab t) (-id t))
+          (keys @tau.alpha.state/ports))))
+
+(defn send-taus [port]
+  (let [ts (vals @db)]
+    (doall
+      (for [t ts
+            :let [s (-get-sab t)
+                  i (-id t)]]
+        (send-tau port s i)))))
+
+(swap! tau.alpha.state/new-port-fns conj send-taus)
+
+(when (on-screen?)
+  (swap! sabs assoc :main-pool
+         (js/SharedArrayBuffer. (+ 4 (* 2 4 *num-taus* *tau-size*))))
+  (let [s (js/Int32Array. (:main-pool @sabs) 0 1)]
+    (astore s 0 0)))
+
+
 (defn reconstruct-tau [s]
+  #_(println "reconstructing-tau:" s)
   (let [tid (:id s)
-        n1 (nth (name tid) 2)
-        n2 (nth (name tid) 3)
-        n (read (if (= n1 "0") n2 (str n1 n2)))
-        idx (get-next-ia-idx n)
-        sab (:main-pool @sabs)
-        ia (js/Int32Array. sab idx (* 2 *tau-size*))
-        t (Tau. sab ia (str tid) {:id (str tid)} nil nil)]
-    (swap! db assoc (str t) t)
-    t))
+        n1 (nth (name tid) 2)]
+    (if (= n1 "_")
+      (get @db (str tid))
+      (let [n2 (nth (name tid) 3)
+            n (read (if (= n1 "0") n2 (str n1 n2)))
+            idx (get-next-ia-idx n)
+            sab (:main-pool @sabs)
+            ia (js/Int32Array. sab idx (* 2 *tau-size*))
+            t (Tau. sab ia (str tid) {:id (str tid)} nil nil)]
+        (swap! db assoc (str t) t)
+        t))))
 
 (register-tag-parser!
-  'Tau (fn [x] (or (get @db (str "#Tau " x))
-                   (reconstruct-tau x))))
+  'Tau (fn [x] #_(println "reading tau")
+          (or (get @db (str "#Tau " x))
+              (reconstruct-tau x))))
 
-(defn tau
-  ([] (tau nil))
-  ([state] (tau state *tau-size*))
-  ([state n] (tau nil state n))
+(defn exec-tau
+  ([] (exec-tau nil))
+  ([state] (exec-tau state *tau-size*))
+  ([state n] (exec-tau nil state n))
   ([tid state n]
    (let [sab (:main-pool @sabs) #_ (js/SharedArrayBuffer. (* 2 4 (or n *tau-size*)))
          n (get-next-ctr sab)
          n (if (< n 10) (str "0" n) (str n))
          ia (js/Int32Array. sab (get-next-ia-idx n) (* 2 *tau-size*))
-         tid (str ":tau/on" n "" (if tid tid (get-new-id)))
+         tid (str ":tau/on" n "" (or tid (get-new-id)))
          t (Tau. sab ia (str tid) {:id (str tid)} nil nil)]
      (swap! db assoc (str t) t)
      (enc ia {:val state :watches nil :validator nil :error-handler nil})
      t)))
+
+(defn tau
+  ([] (tau nil))
+  ([state] (tau state {}))
+  ([state & options]
+   (let [{:keys [meta executor tid size ab]
+          :or {tid (get-new-id)
+               size *tau-size*
+               ab false}}
+         (apply hash-map options)]
+     (if executor
+       (apply exec-tau tid state size)
+       (let [sab (js/SharedArrayBuffer. (* 2 4 size))
+             a (js/Int32Array. sab 0 (* 2 size))
+             tid (str ":tau/on__" (or tid (get-new-id)))
+             t (Tau. sab a tid
+                     (merge meta {:id tid :size size :ab ab})
+                     nil nil)]
+         (swap! db assoc (str t) t)
+         (if (or (array? state) (typed-array? state))
+           (enc-ab a state)
+           (enc a {:val state :watches nil :validator nil :error-handler nil}))
+         (dist-tau t)
+         t)))))

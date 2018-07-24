@@ -57,7 +57,13 @@
 (defn- message-handler [handlers e]
   (let [port (-> e .-data .-port)
         serialized (aget (.-data e) "serialized")
-        deserialized (deserialize serialized)
+        ;_ (println "MH serial:" serialized)
+        deserialized
+        (try (deserialize serialized)
+          (catch :default e
+            (do
+              (println "error:" e)
+              (println "serial:" serialized))))
         tid (keyword (:name deserialized))
         data (:data deserialized)
         transferables (map-key deserialize (js->clj (aget (.-data e) "transferables")))

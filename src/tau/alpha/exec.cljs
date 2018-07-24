@@ -97,7 +97,7 @@
 
 (defn local-submit [pid afn conveyer]
   (let [pid (if (instance? Executor pid) (:id (meta pid)) pid)
-        atau (tau.alpha.tau/tau {:completed? false :afn (pr-str afn) :result nil})]
+        atau (tau.alpha.tau/exec-tau {:completed? false :afn (pr-str afn) :result nil})]
     (enqueue pid {:atau atau :afn afn :conveyer conveyer})
     (sleep 20)
     (let [res (run-q pid)]
@@ -185,4 +185,5 @@
     (do (js/setTimeout #(exec {} :meta {:id :default-executor}) 100))))
 
 (when (on-screen?)
+  #_
   (init-default-executor))

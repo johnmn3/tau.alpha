@@ -12,3 +12,5 @@ pom.xml
 .lein-plugins/
 .repl
 .nrepl-port
+.idea/
+tau.alpha.iml

@@ -4,7 +4,7 @@
             [tau.alpha.call :refer [call]]
             [tau.alpha.util :refer [new-id on? if-str->obj get-worker-script read
                               get-new-id write]]
-            [tau.alpha.tau :refer [send-taus tau]]
+            [tau.alpha.tau :refer [send-taus tau exec-tau]]
             [tau.alpha.state :refer [ports serve-handlers loaded? sabs
                                  screen on-screen? off-screen? conf
                                  add-handler add-listeners id]]))
@@ -27,7 +27,7 @@
 (declare exec-db)
 
 (when (on-screen?)
-  (def exec-db (tau {})))
+  (def exec-db (exec-tau {})))
 
 (defn ui-tauon
   ([value] (ui-tauon [value] nil nil))
@@ -37,12 +37,16 @@
            tid (if (string? tid) (read tid) tid)
            w (worker (get-worker-script nil (:main @conf) (write afn) value tid)
                @serve-handlers)
-           main-pool (:main-pool @sabs)]
+           main-pool (:main-pool @sabs)
+           int32 (tau.alpha.tau/-get-int32a exec-db)
+           t (tau.alpha.tau/-id exec-db)]
        (swap! ports assoc-in [tid :w] w)
        (dist-ports tid)
        (on tid [main-pool] (swap! sabs assoc :main-pool main-pool))
-       (on tid [exec-db] (def exec-db exec-db))
        (on tid (run-launch))
+       (on tid [int32 t]
+           (def exec-db
+             (tau.alpha.tau/Tau. (:main-pool @sabs) int32 (str t) {:id (str t)} nil nil)))
        tid))))
 
 (defn new-id-key []

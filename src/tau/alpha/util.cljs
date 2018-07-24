@@ -151,16 +151,18 @@
     ps))
 
 (defn enc [ar d]
-  (let [s (pr-str d)
-        new-length (count s)
-        _ (assert (< (* 2 new-length) (.-length ar)))
-        old-index (js/Atomics.load ar 2)
-        new-index (if (= 0 old-index) (int (/ (.-length ar) 2)) 0)
-        write-point (if (= 0 new-index) 4 1)
-        _ (doall (map-indexed #(aset ar (+ %1 write-point new-index) (.charCodeAt %2 0)) (seq s)))]
-    (js/Atomics.store ar (+ (dec write-point) new-index) new-length)
-    (js/Atomics.store ar 2 new-index)
-    ar))
+  (try
+    (let [s (pr-str d)
+          new-length (count s)
+          _ (assert (< (* 2 new-length) (.-length ar)))
+          old-index (js/Atomics.load ar 2)
+          new-index (if (= 0 old-index) (int (/ (.-length ar) 2)) 0)
+          write-point (if (= 0 new-index) 4 1)
+          _ (doall (map-indexed #(aset ar (+ %1 write-point new-index) (.charCodeAt %2 0)) (seq s)))]
+      (js/Atomics.store ar (+ (dec write-point) new-index) new-length)
+      (js/Atomics.store ar 2 new-index)
+      ar)
+    (catch :default e (println "failed on enc"))))
 
 (defn unc [a]
   (let [i (js/Atomics.load a 2)
