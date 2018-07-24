@@ -2,11 +2,11 @@
   (:require-macros [tau.alpha.macros :refer [log on]])
   (:require [cljs.reader :refer [read-string]]
             [tau.alpha.state :refer [serve-handlers get-id ports conf start-time
-                                 screen on-screen? off-screen? id loaded?
-                                 add-handler remove-handler add-listeners
-                                 event-message message-handler]]
+                                     screen on-screen? off-screen? id loaded?
+                                     add-handler remove-handler add-listeners
+                                     event-message message-handler]]
             [tau.alpha.util :refer [write read on? typed-array? pr-fn
-                                serialize deserialize]]
+                                    serialize deserialize]]
             [clojure.pprint :refer [pprint]]))
 
 (enable-console-print!)

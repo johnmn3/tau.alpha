@@ -3,11 +3,11 @@
   (:require [tau.alpha.io :refer [worker dist-ports connect kill-local]]
             [tau.alpha.call :refer [call]]
             [tau.alpha.util :refer [new-id on? if-str->obj get-worker-script read
-                              get-new-id write]]
+                                    get-new-id write]]
             [tau.alpha.tau :refer [send-taus tau exec-tau]]
             [tau.alpha.state :refer [ports serve-handlers loaded? sabs
-                                 screen on-screen? off-screen? conf
-                                 add-handler add-listeners id]]))
+                                     screen on-screen? off-screen? conf
+                                     add-handler add-listeners id]]))
 
 (enable-console-print!)
 (set! *print-fn-bodies* true)

@@ -1,5 +1,5 @@
-^{:watch-dirs ["src"]
-  :css-dirs ["resources/public/css"]
+^{:watch-dirs ["src" "ex"]
+  :css-dirs ["ex/resources/public/css"]
   :ring-server-options {:port 9550}
   :connect-id {:fwbuild "dev"}
   :validate-config false}

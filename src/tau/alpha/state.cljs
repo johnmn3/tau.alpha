@@ -57,7 +57,6 @@
 (defn- message-handler [handlers e]
   (let [port (-> e .-data .-port)
         serialized (aget (.-data e) "serialized")
-        ;_ (println "MH serial:" serialized)
         deserialized
         (try (deserialize serialized)
           (catch :default e
