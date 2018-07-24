@@ -1,4 +1,5 @@
 {:deps {org.clojure/clojure {:mvn/version "1.9.0"}}
+ :paths ["src" "ex"]
  :aliases {:fig   {:extra-deps
                     {org.clojure/clojurescript {:mvn/version "1.10.339"}
                      com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}

@@ -1,4 +1,0 @@
-^{:watch-dirs ["src"]
-  :css-dirs ["resources/public/css"]
-  :ring-server-options {:port 9551}}
-{:main tau.alpha.ex}
