@@ -1,9 +1,21 @@
-(ns tau.alpha.example.testing
+(ns tau.alpha.example.core
   (:require-macros [tau.alpha.macros :refer [log on future later]])
-  (:require [tau.alpha.core :refer [set-conf! on-screen? tauon tau]]
+  (:require [cljs.reader :refer [register-tag-parser!]]
+            [tau.alpha.core :refer [set-conf! on-screen? tauon tau db reconstruct-tau get-id]]
             [tau.alpha.example.automata :refer [get-frame make-initial-conditions]]
             [tau.alpha.example.utils :refer [raf on-click actx]]
             [tau.alpha.example.fps :refer [fps]]))
+
+(register-tag-parser!
+  'Tau (fn [x] #_(println "reading tau")
+          (or (get @db (str "#Tau " x))
+              (reconstruct-tau x))))
+
+(register-tag-parser!
+  'T (fn [x] (println "reading T, got:" x)
+       #_
+          (or (get @db (str "#Tau " x))
+              (reconstruct-tau x))))
 
 (set-conf! {:main "tau.alpha.example.core"
             :log? true})
@@ -38,27 +50,34 @@
 (def local-store (atom {}))
 
 (defn process-results [lid]
+  ; (js/console.log (str "processing results on lid: " lid))
   (raf
    #(let [{:keys [ctx width height tau trigger]} (get @local-store lid)
           idata (.createImageData ctx width height)]
       (.set (.-data idata) @tau)
       (.putImageData ctx idata 0 0 0 0 width height)
+      (swap! trigger (constantly nil)) #_
       (raf
        (fn []
          (swap! trigger (constantly nil)))))))
 
-
-(defn send-work [tauon2 tau lid]
-  (on tauon2 {:error-fn println} [tau lid]
-      (swap! tau get-frame)
-      (on "screen" {:error-fn println} [lid]
-          (process-results lid))))
+;; breaking under advanced compile. reader not recognizing "#Tau {:id ...}". says "no dispatch macro for T."
+(defn send-work [tauon2 tau tid lid]
+  ; (js/console.log "sending work")
+  (do ;let [tid (get-id tau)]
+    (on tauon2 [tid lid] {:error-fn println}
+      (let [getter (str "#Tau {:id " tid "}")
+            atau (get @db getter)]
+        (swap! atau get-frame)
+        (on "screen" [lid] {:error-fn println}
+            (process-results lid))))))
 
 (defn run-loop-once [on? lid]
   (when @on?
     (raf
-     #(let [{:keys [tau tauon]} (get @local-store lid)]
-        (send-work tauon tau lid)))))
+     #(let [{:keys [tau tauon]} (get @local-store lid)
+            tid (get-id tau)]
+        (send-work tauon tau tid lid)))))
 
 (defn setupb [{:keys [ctx width] :as aut}]
   (let [lid (keyword (gensym 'lid-))
@@ -108,4 +127,3 @@
   (hookupb "d2")
   (hookupb "e2")
   (hookupb "f2"))
-

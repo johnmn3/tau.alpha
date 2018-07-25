@@ -29,6 +29,7 @@
          (map #(aget the-state (rem (+ norm %) size)))
          (vec))))
 
+#_
 (defn make-stepper [the-rule width]
   (fn [state]
     (let [width (dec (* 4 width))
@@ -43,8 +44,25 @@
       (.set state sl 0))
     (js/Uint8ClampedArray. state)))
 
+(defn make-stepper [the-rule width]
+  (fn [state]
+    (let [width (dec (* 4 width))
+          x (- (.-length state) width 4)]
+      (loop [the-state state i 0]
+        (when (< i x)
+          (let [pre (wrap-sub the-state i)
+                res (the-rule pre)]
+            (.set the-state res (+ width 1 i))
+            (recur the-state (+ i 4))))))
+    ;(println "width:" width)
+    (let [r (* 4 width width)
+          l (- r (* 4 width))
+          sl (.slice state l r)]
+      (.set state sl 0))
+    (js/Uint8ClampedArray. state)))
+
 (def rule30 (make-rule 0 0 0 1 1 1 1 0))
 
-(def rule-30-stepper (make-stepper rule30 64))
+(def rule-30-stepper (make-stepper rule30 256))
 
 (defn get-frame [a] (rule-30-stepper a))

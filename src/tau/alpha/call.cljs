@@ -36,20 +36,26 @@
   (let [s (if (string? obj-js) obj-js (pr-str obj-js))
         new-s (strip-obj s)
         anon? (= "function (" (apply str (take 10 new-s)))
+        min-anon? (= "function(" (apply str (take 9 new-s)))
         n1 (if anon?
              "Function"
-             (apply str
-               (take-while #(not (#{\(} %))
-                 (drop 9 new-s))))]
+             (if min-anon?
+               "minFunction"
+               (apply str
+                 (take-while #(not (#{\(} %))
+                   (drop 9 new-s)))))]
     n1))
 
 (defn name-fn-proto [s]
   (let [old-name (get-name s)
         f? (= "Function" old-name)
+        minf? (= "minFunction" old-name)
         n (str "f_" (gensym))]
     (if f?
       (str "function " n (subs (get-raw-fn s) 9) ";" n)
-      (str (strip-obj s) ";" old-name))))
+      (if minf?
+        (str "function " n (subs (get-raw-fn s) 8) ";" n)
+        (str (strip-obj s) ";" old-name)))))
 
 (defn name-fn [s]
   (let [f (name-fn-proto s)

@@ -10,3 +10,9 @@
 (def tauon o/tauon)
 
 (def tau t/tau)
+
+(def db t/db)
+
+(def reconstruct-tau t/reconstruct-tau)
+
+(def get-id t/-id)

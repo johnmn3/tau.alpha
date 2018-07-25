@@ -4,4 +4,4 @@
   :connect-id {:fwbuild "dev"}
   :validate-config false}
 {:main tau.alpha.example.core
- :source-map true}
+ :pretty-print true}

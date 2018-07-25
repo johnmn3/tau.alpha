@@ -139,14 +139,16 @@
   (try
     (let [;_ (println :type (type a))
           i (js/Atomics.load a 2)
-          ;_ (println "i:" i)
           read-point ({0 4} i 1)
           l (js/Atomics.load a (+ (dec read-point) i))
           #_ (println "unc-ab, i:" i "read-point:" read-point "l:" l)
+          ;ca (.slice a (+ i read-point -1))
+          ca (js/Int32Array. (.slice a (+ i read-point) (+ i read-point l)) #_
+              (to-array (take l (drop (+ i read-point) (array-seq a))))) #_#_
           ca (js/Int32Array.
               (to-array (take l (drop (+ i read-point) (array-seq a)))))]
       ca)
-    (catch :default e 
+    (catch :default e
       (do (println "failed on unc-ab")
           (println "error:" e)))))
 
@@ -288,10 +290,8 @@
   (* n 2 4 *tau-size*))
 
 (defn construct-tau [sab nid]
-  #_(println "constructing-tau:" nid)
   (let [tid (read nid)
         n1 (nth (name tid) 2)]
-    #_(println "tid:" tid "n1:" n1)
     (if (= n1 "_")
       (let [size (/ (.-byteLength sab) 4)
             ia (js/Int32Array. sab 0 size)
@@ -308,17 +308,15 @@
         (swap! db assoc (str t) t)
         t))))
 
+;; breaking under advanced compile. reader not recognizing "#Tau {:id ...}". says "no dispatch macro for T."
 (defn receive-tau [sab nid]
-  #_(println "receive-tau: nid:" nid)
   (let [tau-id (str "#Tau {:id " nid "}")
         atau (construct-tau sab nid)]
-    (swap! db assoc tau-id atau)
-    #_(println "received tau, contents:" @atau)))
+    (swap! db assoc tau-id atau)))
 
 (defn send-tau [port sab nid]
   (if (on-screen?)
     (on port [sab nid] {:error-fn println}
-        #_(println "getting tau, length:" (.-byteLength sab))
         (receive-tau sab nid))
     (on "screen" [sab port nid] {:error-fn println}
         (on port [sab nid] {:error-fn println}

@@ -9,4 +9,4 @@
            :dev   {:extra-deps
                               {com.bhauman/figwheel-repl {:mvn/version "0.1.4"}}
                    :main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}}}
+           :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}
