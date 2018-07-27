@@ -19,7 +19,7 @@ To see a super simple example of what can be done performancewise, checkout this
 
 The current implementation uses a very naive method to manage memory on SharedArrayBuffers. `(def t (tau {:input 1 :fn #(inc)))` will produce an object backed by a SAB of `(* 2 *tau-size*)` size, with a stringified version of the datastructure `{:input 1 :fn #(+ 5 %)}` stored in the first half of the SAB. Executing `(swap! t #((:fn %) (:input %)))` will deserialize the contents, apply the function to the state, then store the stringified result back into the second half of the SAB. This is a naive method of achieving non-blocking reads and blocking, atomic writes. On webworkers, (tauons) we can optionally read with a blocking dereference. The downside is that it doubles your necessary memory use. A more advanced memory update scheme might use a structural diff on the old value and new value and use an append-only log. Using [TypedArray-backed persistent datastructures](https://dev.clojure.org/jira/browse/CLJS-1153) would make all that easier and we also wouldn't have to pay for the serialization to and from the SAB.
 
-A previous version of tau.alpha was built _without_ SharedArrayBuffers, passing all data via webworker's `postMessage` interface. That option available again eventually, but passing data back and forth is more costly than the SAB backed method.
+A previous version of tau.alpha was built _without_ SharedArrayBuffers, passing all data via webworker's `postMessage` interface. That option will available again eventually, but passing data back and forth is more costly than the SAB backed method.
 
 ### future
 
