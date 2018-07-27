@@ -3,5 +3,4 @@
   :ring-server-options {:port 9550}
   :connect-id {:fwbuild "dev"}
   :validate-config false}
-{:main tau.alpha.example.core
- :source-map true}
+{:main tau.alpha.example.core}

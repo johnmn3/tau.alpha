@@ -5,6 +5,9 @@
     <link href="css/style.css" rel="stylesheet" type="text/css">
     <style>
       .fpsblock {
+        position: fixed;
+        top: 10px;
+        right: 10px;
         display: inline-block;
       }
       .fpsleft {
@@ -26,8 +29,8 @@
     <p>Click on the boxes below to start the automatons. (256x256 rule 30 1D CA)</p>
     <p>The main thread automatons will quickly bog down the main thread.</p>
     <p>Automatons on the tauons will do all work off the main thread.</p>
-    <p>(note: from desktop and mobile Chrome, you can enable SABs via chrome://flags)</p>
-    <p>main thread:</p>
+    <p>(note: to try this example, you <i>must</i> enable SharedArrayBuffers via chrome://flags)</p>
+    <h4>main thread:</h4>
     <div>
     <canvas id="a1" width="256" height="256" style="border:1px solid"></canvas>
     <canvas id="b1" width="256" height="256" style="border:1px solid"></canvas>
@@ -38,7 +41,7 @@
     <canvas id="e1" width="256" height="256" style="border:1px solid"></canvas>
     <canvas id="f1" width="256" height="256" style="border:1px solid"></canvas>
     </div>
-    <p>on tauon:</p>
+    <h4>on tauon:</h4>
     <div>
     <canvas id="a2" width="256" height="256" style="border:1px solid"></canvas>
     <canvas id="b2" width="256" height="256" style="border:1px solid"></canvas>
@@ -51,6 +54,8 @@
     </div>
     <h3>Example code for automatons running off main thread.</h3>
 
+
+
 <!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">(<span style="font-weight: bold">ns </span>tau.alpha.example.core
   (<span style="font-style: italic">:require</span> [tau.alpha.core <span style="font-style: italic">:refer</span> [on-screen? tauon tau db get-id]]
             [tau.alpha.example.automata <span style="font-style: italic">:refer</span> [get-frame make-initial-conditions]]
@@ -58,65 +63,55 @@
 
 (<span style="font-weight: bold">def </span>local-store (atom {}))
 
-(<span style="font-weight: bold">defn </span>process-results [lid]
+(<span style="font-weight: bold">defn </span>get-automaton [tau]
+  (get @local-store (get-id tau)))
+
+(<span style="font-weight: bold">defn </span>process-results [tau]
   (raf
-   #(<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [ctx width height tau trigger]} (get @local-store lid)
-          idata (.createImageData ctx width height)]
-      (.set (.-data idata) @tau)
-      (.putImageData ctx idata 0 0 0 0 width height)
-      (swap! trigger (constantly nil)))))
+   #(<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [ctx width height on?]} (get-automaton tau)]
+      (paint-automaton ctx width height tau)
+      (swap! on? (constantly @on?)))))
 
-(<span style="font-weight: bold">defn </span>send-work [tauon2 tau tid lid]
-  (on tauon2 [tid lid]
-    (<span style="font-weight: bold">let </span>[atau (get @db (str <span style="font-style: italic">&quot;#Tau {:id &quot;</span> tid <span style="font-style: italic">&quot;}&quot;</span>))]
-      (swap! atau get-frame)
-      (on <span style="font-style: italic">&quot;screen&quot;</span> [lid]
-          (process-results lid)))))
+(<span style="font-weight: bold">defn </span>swap-on! [tauon tau work-fn]
+  (on tauon [tau work-fn]
+    (swap! tau work-fn)
+    (on <span style="font-style: italic">&quot;screen&quot;</span> [tau]
+      (process-results tau))))
 
-(<span style="font-weight: bold">defn </span>run-loop-once [on? lid]
+(<span style="font-weight: bold">defn </span>run-loop-once [on? tau]
   (when @on?
-    (raf
-     #(<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [tau tauon]} (get @local-store lid)
-            tid (get-id tau)]
-        (send-work tauon tau tid lid)))))
+    (<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [tauon]} (get-automaton tau)]
+      (swap-on! tauon tau get-frame))))
 
-(<span style="font-weight: bold">defn </span>setup [{<span style="font-style: italic">:keys</span> [ctx width] <span style="font-style: italic">:as</span> aut}]
-  (<span style="font-weight: bold">let </span>[lid (keyword (gensym <span style="font-style: italic">&#39;lid-</span>))
-        atauon (tauon)
-        init (make-initial-conditions width)
-        tau (tau init <span style="font-style: italic">:ab</span> true <span style="font-style: italic">:size</span> 1000000)]
-    (swap! local-store assoc lid
-           (merge aut
-                  {<span style="font-style: italic">:tau</span> tau
-                   <span style="font-style: italic">:on?</span> (atom false)
-                   <span style="font-style: italic">:trigger</span> (atom nil)
-                   <span style="font-style: italic">:data</span> (atom nil)
-                   <span style="font-style: italic">:tauon</span> atauon}))
-    (set! (.-fillColor ctx) <span style="font-style: italic">&quot;#ffffff&quot;</span>)
-    lid))
+(<span style="font-weight: bold">defn </span>setup-tauon [{<span style="font-style: italic">:keys</span> [width] <span style="font-style: italic">:as</span> automaton}]
+  (<span style="font-weight: bold">let </span>[tauon (tauon)
+        tau (tau (make-initial-conditions width) <span style="font-style: italic">:ab</span> true <span style="font-style: italic">:size</span> 1000000)]
+    (swap! local-store assoc (str (get-id tau))
+           (merge automaton {<span style="font-style: italic">:on?</span> (atom false) <span style="font-style: italic">:tauon</span> tauon <span style="font-style: italic">:tau</span> tau}))
+    (get-automaton tau)))
 
-(<span style="font-weight: bold">defn </span>hookup [astr]
-  (<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [canvas] <span style="font-style: italic">:as</span> aut} (actx astr)
-        lid (setup aut)
-        {<span style="font-style: italic">:keys</span> [on? trigger tau]} (get @local-store lid)]
-    (on-click canvas
-              #(when @tau
-                 (swap! on? not)
-                 (run-loop-once on? lid)))
-    (add-watch trigger lid #(run-loop-once on? lid))))
+(<span style="font-weight: bold">defn </span>start-automaton [on? tau]
+  (swap! on? not)
+  (run-loop-once on? tau))
+
+(<span style="font-weight: bold">defn </span>hookup-automaton [astr]
+  (<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [canvas] <span style="font-style: italic">:as</span> automaton} (actx astr)
+        {<span style="font-style: italic">:keys</span> [tau on?]} (setup-tauon automaton)]
+    (on-click canvas #(start-automaton on? tau))
+    (add-watch on? tau #(run-loop-once on? tau))))
 
 (when (on-screen?)
-  (hookup <span style="font-style: italic">&quot;a2&quot;</span>)
-  (hookup <span style="font-style: italic">&quot;b2&quot;</span>)
-  (hookup <span style="font-style: italic">&quot;c2&quot;</span>)
-  (hookup <span style="font-style: italic">&quot;d2&quot;</span>)
-  (hookup <span style="font-style: italic">&quot;e2&quot;</span>)
-  (hookup <span style="font-style: italic">&quot;f2&quot;</span>))
+  (hookup-automaton <span style="font-style: italic">&quot;a2&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;b2&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;c2&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;d2&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;e2&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;f2&quot;</span>))
 </pre></div>
 
 
 
-    <script src="js/compiled/min-main.js" type="text/javascript"></script>
+    <script src="js/compiled/dev-main.js" type="text/javascript"></script>
     <!-- <script src="cljs-out/dev-main.js" type="text/javascript"></script> -->
   </body>
 </html>

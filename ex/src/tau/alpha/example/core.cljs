@@ -8,6 +8,11 @@
 (set-conf! {:main "tau.alpha.example.core"
             :log? true})
 
+(defn paint-automaton [ctx width height iref]
+  (let [idata (.createImageData ctx width height)]
+    (.set (.-data idata) @iref)
+    (.putImageData ctx idata 0 0 0 0 width height)))
+
 ;; fps
 
 (when (on-screen?)
@@ -19,27 +24,25 @@
 
 ;; On main thread
 
-(defn start [on? tail ctx width height]
+(defn start [on? state ctx width height]
   (when @on?
     (raf
-     #(let [_ (swap! tail get-frame)
-            idata (.createImageData ctx width height)
-            _ (.set (.-data idata) @tail)]
-        (.putImageData ctx idata 0 0 0 0 width height)
-        (start on? tail ctx width height)))))
+     #(do (swap! state get-frame)
+        (paint-automaton ctx width height state)
+        (start on? state ctx width height)))))
 
 (defn setup [ctx width]
-  (let [tail (atom (make-initial-conditions width))
+  (let [state (atom (make-initial-conditions width))
         on? (atom false)]
     (set! (.-fillColor ctx) "#ffffff")
-    {:tail tail :on? on?}))
+    {:state state :on? on?}))
 
 (defn hookup [astr]
   (let [{:keys [ctx width height canvas]} (actx astr)
-        {:keys [tail on?]} (setup ctx width)]
+        {:keys [state on?]} (setup ctx width)]
     (on-click canvas
               #(do (swap! on? not)
-                   (start on? tail ctx width height)))))
+                   (start on? state ctx width height)))))
 
 (when (on-screen?)
   (hookup "a1")
@@ -53,52 +56,42 @@
 
 (def local-store (atom {}))
 
-(defn process-results [lid]
+(defn get-automaton [tau]
+  (get @local-store (get-id tau)))
+
+(defn process-results [tau]
   (raf
-   #(let [{:keys [ctx width height tau trigger]} (get @local-store lid)
-          idata (.createImageData ctx width height)]
-      (.set (.-data idata) @tau)
-      (.putImageData ctx idata 0 0 0 0 width height)
-      (swap! trigger (constantly nil)))))
+   #(let [{:keys [ctx width height on?]} (get-automaton tau)]
+      (paint-automaton ctx width height tau)
+      (swap! on? (constantly @on?)))))
 
-(defn send-work [tauon2 tau tid lid]
-  (on tauon2 [tid lid]
-    (let [atau (get @db (str "#Tau {:id " tid "}"))]
-      (swap! atau get-frame)
-      (on "screen" [lid]
-          (process-results lid)))))
+(defn swap-on! [tauon tau work-fn]
+  (on tauon [tau work-fn]
+    (swap! tau work-fn)
+    (on "screen" [tau]
+      (process-results tau))))
 
-(defn run-loop-once [on? lid]
+(defn run-loop-once [on? tau]
   (when @on?
-    (raf
-     #(let [{:keys [tau tauon]} (get @local-store lid)
-            tid (get-id tau)]
-        (send-work tauon tau tid lid)))))
+    (let [{:keys [tauon]} (get-automaton tau)]
+      (swap-on! tauon tau get-frame))))
 
-(defn setup-tauon [{:keys [ctx width] :as aut}]
-  (let [lid (keyword (gensym 'lid-))
-        atauon (tauon)
-        init (make-initial-conditions width)
-        tau (tau init :ab true :size 1000000)]
-    (swap! local-store assoc lid
-           (merge aut
-                  {:tau tau
-                   :on? (atom false)
-                   :trigger (atom nil)
-                   :data (atom nil)
-                   :tauon atauon}))
-    (set! (.-fillColor ctx) "#ffffff")
-    lid))
+(defn setup-tauon [{:keys [width] :as automaton}]
+  (let [tauon (tauon)
+        tau (tau (make-initial-conditions width) :ab true :size 1000000)]
+    (swap! local-store assoc (str (get-id tau))
+           (merge automaton {:on? (atom false) :tauon tauon :tau tau}))
+    (get-automaton tau)))
+
+(defn start-automaton [on? tau]
+  (swap! on? not)
+  (run-loop-once on? tau))
 
 (defn hookup-automaton [astr]
-  (let [{:keys [canvas] :as aut} (actx astr)
-        lid (setup-tauon aut)
-        {:keys [on? trigger tau]} (get @local-store lid)]
-    (on-click canvas
-              #(when @tau
-                 (swap! on? not)
-                 (run-loop-once on? lid)))
-    (add-watch trigger lid #(run-loop-once on? lid))))
+  (let [{:keys [canvas] :as automaton} (actx astr)
+        {:keys [tau on?]} (setup-tauon automaton)]
+    (on-click canvas #(start-automaton on? tau))
+    (add-watch on? tau #(run-loop-once on? tau))))
 
 (when (on-screen?)
   (hookup-automaton "a2")
