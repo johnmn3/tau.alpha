@@ -7,6 +7,6 @@
                    :main-opts ["-m" "figwheel.main"]}
            :dev   {:extra-deps
                     {com.bhauman/figwheel-repl {:mvn/version "0.1.4"}}
-                   :extra-paths ["ex" "ex/resources" "ex/target"]
+                   :extra-paths ["ex" "ex/src" "ex/resources" "ex/target"]
                    :main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
            :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}}}

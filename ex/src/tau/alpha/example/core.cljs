@@ -57,7 +57,7 @@
 (def local-store (atom {}))
 
 (defn get-automaton [tau]
-  (get @local-store (get-id tau)))
+  (get @local-store tau))
 
 (defn process-results [tau]
   (raf
@@ -78,8 +78,8 @@
 
 (defn setup-tauon [{:keys [width] :as automaton}]
   (let [tauon (tauon)
-        tau (tau (make-initial-conditions width) :ab true :size 1000000)]
-    (swap! local-store assoc (str (get-id tau))
+        tau (tau (make-initial-conditions width) :ab true :size (* width width 4))]
+    (swap! local-store assoc tau
            (merge automaton {:on? (atom false) :tauon tauon :tau tau}))
     (get-automaton tau)))
 
