@@ -3,7 +3,8 @@
   (:require [tau.alpha.core :refer [set-conf! on-screen? tauon tau db reconstruct-tau get-id]]
             [tau.alpha.example.automata :refer [get-frame make-initial-conditions]]
             [tau.alpha.example.utils :refer [raf on-click actx]]
-            [tau.alpha.example.fps :refer [fps]]))
+            [tau.alpha.example.fps :refer [fps]]
+            [goog.object :as gobj]))
 
 (set-conf! {:main "tau.alpha.example.core"
             :log? true})
@@ -56,12 +57,9 @@
 
 (def local-store (atom {}))
 
-(defn get-automaton [tau]
-  (get @local-store tau))
-
 (defn process-results [tau]
   (raf
-   #(let [{:keys [ctx width height on?]} (get-automaton tau)]
+   #(let [{:keys [ctx width height on?]} (@local-store tau)]
       (paint-automaton ctx width height tau)
       (swap! on? (constantly @on?)))))
 
@@ -73,7 +71,7 @@
 
 (defn run-loop-once [on? tau]
   (when @on?
-    (let [{:keys [tauon]} (get-automaton tau)]
+    (let [{:keys [tauon]} (@local-store tau)]
       (swap-on! tauon tau get-frame))))
 
 (defn setup-tauon [{:keys [width] :as automaton}]
@@ -81,7 +79,7 @@
         tau (tau (make-initial-conditions width) :ab true :size (* width width 4))]
     (swap! local-store assoc tau
            (merge automaton {:on? (atom false) :tauon tauon :tau tau}))
-    (get-automaton tau)))
+    (@local-store tau)))
 
 (defn start-automaton [on? tau]
   (swap! on? not)
@@ -100,3 +98,18 @@
   (hookup-automaton "d2")
   (hookup-automaton "e2")
   (hookup-automaton "f2"))
+
+(when (on-screen?)
+  (def square (.getElementById js/document "square-animation"))
+
+  (def top (atom 0))
+
+  (defn move []
+    (if (>= 300 @top)
+      (swap! top inc)
+      (reset! top 0))
+    (gobj/set (.-style square) "top" (str @top "px")))
+
+
+
+  (js/setInterval move 10))

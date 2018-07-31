@@ -2,7 +2,21 @@
 <html>
   <head>
     <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1">
+    <link href="css/style.css" rel="stylesheet" type="text/css">
     <style>
+      .square-container {
+        width: 25px;
+        height: 300px;
+        position: fixed;
+        top: 100px;
+        right: 10px;
+      }
+      #square-animation {
+        width: 25px;
+        height: 25px;
+        position: absolute;
+        background-color: red;
+      }
       .fpsblock {
         position: fixed;
         top: 10px;
@@ -23,6 +37,9 @@
     <div class="fpsblock">
       <p class="fpsleft">FPS: </p>
       <div class="fpsright" id="fps"></div>
+    </div>
+    <div class="square-container">
+      <div id="square-animation"></div>
     </div>
     </h3>
     <p>Click on the boxes below to start the automatons. (256x256 rule 30 1D CA)</p>
@@ -62,12 +79,14 @@
 
 (<span style="font-weight: bold">def </span>local-store (atom {}))
 
-(<span style="font-weight: bold">defn </span>get-automaton [tau]
-  (get @local-store (get-id tau)))
+(<span style="font-weight: bold">defn </span>paint-automaton [ctx width height iref]
+  (<span style="font-weight: bold">let </span>[idata (.createImageData ctx width height)]
+    (.set (.-data idata) @iref)
+    (.putImageData ctx idata 0 0 0 0 width height)))
 
 (<span style="font-weight: bold">defn </span>process-results [tau]
   (raf
-   #(<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [ctx width height on?]} (get-automaton tau)]
+   #(<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [ctx width height on?]} (@local-store tau)]
       (paint-automaton ctx width height tau)
       (swap! on? (constantly @on?)))))
 
@@ -79,15 +98,15 @@
 
 (<span style="font-weight: bold">defn </span>run-loop-once [on? tau]
   (when @on?
-    (<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [tauon]} (get-automaton tau)]
+    (<span style="font-weight: bold">let </span>[{<span style="font-style: italic">:keys</span> [tauon]} (@local-store tau)]
       (swap-on! tauon tau get-frame))))
 
 (<span style="font-weight: bold">defn </span>setup-tauon [{<span style="font-style: italic">:keys</span> [width] <span style="font-style: italic">:as</span> automaton}]
   (<span style="font-weight: bold">let </span>[tauon (tauon)
-        tau (tau (make-initial-conditions width) <span style="font-style: italic">:ab</span> true <span style="font-style: italic">:size</span> 1000000)]
-    (swap! local-store assoc (str (get-id tau))
+        tau (tau (make-initial-conditions width) <span style="font-style: italic">:ab</span> true <span style="font-style: italic">:size</span> (* width width 4))]
+    (swap! local-store assoc tau
            (merge automaton {<span style="font-style: italic">:on?</span> (atom false) <span style="font-style: italic">:tauon</span> tauon <span style="font-style: italic">:tau</span> tau}))
-    (get-automaton tau)))
+    (@local-store tau)))
 
 (<span style="font-weight: bold">defn </span>start-automaton [on? tau]
   (swap! on? not)
@@ -100,13 +119,15 @@
     (add-watch on? tau #(run-loop-once on? tau))))
 
 (when (on-screen?)
-  (hookup-automaton <span style="font-style: italic">&quot;a2&quot;</span>)
-  (hookup-automaton <span style="font-style: italic">&quot;b2&quot;</span>)
-  (hookup-automaton <span style="font-style: italic">&quot;c2&quot;</span>)
-  (hookup-automaton <span style="font-style: italic">&quot;d2&quot;</span>)
-  (hookup-automaton <span style="font-style: italic">&quot;e2&quot;</span>)
-  (hookup-automaton <span style="font-style: italic">&quot;f2&quot;</span>))
+  (hookup-automaton <span style="font-style: italic">&quot;a-div&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;b-div&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;c-div&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;d-div&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;e-div&quot;</span>)
+  (hookup-automaton <span style="font-style: italic">&quot;f-div&quot;</span>))
 </pre></div>
+
+
 
 
 
