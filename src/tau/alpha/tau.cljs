@@ -291,7 +291,6 @@
   (* n 2 4 *tau-size*))
 
 (defn construct-tau [sab nid]
-  (println "constructing tau:" nid)
   (let [tid (read nid)
         n1 (nth (name tid) 2)]
     (if (= n1 "_")
@@ -356,7 +355,7 @@
 
 
 (defn reconstruct-tau [s]
-  (println "reconstructing-tau:" s)
+  ; (println "reconstructing-tau:" s)
   (let [tid (:id s)
         n1 (nth (name tid) 2)]
     (if (= n1 "_")
