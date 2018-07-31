@@ -4,7 +4,8 @@
     [tau.alpha.state :refer [id on-screen? sabs]]
     [tau.alpha.call :refer [call]]
     [tau.alpha.util :refer [get-new-id read enc unc typed-array?]]
-    [cljs.reader :refer [register-tag-parser!]]))
+    [cljs.reader :refer [register-tag-parser!]]
+    [cljs.pprint :refer [pprint]]))
 
 (enable-console-print!)
 (set! *print-fn-bodies* true)
@@ -290,12 +291,14 @@
   (* n 2 4 *tau-size*))
 
 (defn construct-tau [sab nid]
+  (println "constructing tau:" nid)
   (let [tid (read nid)
         n1 (nth (name tid) 2)]
     (if (= n1 "_")
-      (let [size (/ (.-byteLength sab) 4)
+      (let [ab? (= "_" (nth (name tid) 3))
+            size (/ (.-byteLength sab) 4)
             ia (js/Int32Array. sab 0 size)
-            meta {:id (str tid) :size size :ab true}
+            meta {:id (str tid) :size size :ab ab?}
             t (Tau. sab ia (str tid) meta nil nil)]
         (swap! db assoc (str t) t)
         t)
@@ -353,7 +356,7 @@
 
 
 (defn reconstruct-tau [s]
-  #_(println "reconstructing-tau:" s)
+  (println "reconstructing-tau:" s)
   (let [tid (:id s)
         n1 (nth (name tid) 2)]
     (if (= n1 "_")
@@ -400,7 +403,8 @@
        (apply exec-tau tid state size)
        (let [sab (js/SharedArrayBuffer. (* 2 4 size))
              a (js/Int32Array. sab 0 (* 2 size))
-             tid (str ":tau/on__" (or tid (get-new-id)))
+             tau-type (if ab "_" "*")
+             tid (str ":tau/on_" tau-type (or tid (get-new-id)))
              t (Tau. sab a tid
                      (merge meta {:id tid :size size :ab ab})
                      nil nil)]
